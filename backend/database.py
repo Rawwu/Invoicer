@@ -48,3 +48,17 @@ def save_job(data):
 
     conn.commit()
     conn.close()
+
+def get_all_jobs():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM jobs")
+    jobs = cursor.fetchall()
+
+    conn.close()
+
+    # Transform the data into a list of dictionaries
+    columns = ["id", "date", "time_spent", "labor_cost", "gas_expenses", "additional_charges", "total_cost"]
+    jobs_dict = [dict(zip(columns, job)) for job in jobs]
+    return jobs_dict
