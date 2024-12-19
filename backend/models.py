@@ -9,6 +9,7 @@ class JobInput(BaseModel):
     labor_cost_per_hour: float = Field(..., gt=0, description="Labor cost per hour")
     gas_expenses: float = Field(..., ge=0, description="Gas expenses")
     additional_charges: float = Field(..., ge=0, description="Additional charges")
+    name: Optional[str] = Field(None, description="Name of the job (optional)")
     date: Optional[str] = Field(None, description="Date of the job (optional)")
 
 # Output model for calculations

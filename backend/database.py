@@ -17,6 +17,7 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
             date TEXT,
             time_spent REAL,
             labor_cost REAL,
@@ -35,12 +36,13 @@ def save_job(data):
     cursor = conn.cursor()
 
     cursor.execute('''
-        INSERT INTO jobs (date, time_spent, labor_cost, gas_expenses, additional_charges, total_cost)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO jobs (name, date, time_spent, labor_cost_per_hour, gas_expenses, additional_charges, total_cost)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
+        data['name'],
         data['date'],
         data['time_spent'],
-        data['labor_cost'],
+        data['labor_cost_per_hour'],  # Update column name here
         data['gas_expenses'],
         data['additional_charges'],
         data['total_cost']
@@ -53,12 +55,12 @@ def get_all_jobs():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM jobs")
+    cursor.execute("SELECT name, date, time_spent, labor_cost, gas_expenses, additional_charges, total_cost FROM jobs")
     jobs = cursor.fetchall()
 
     conn.close()
 
-    # Transform the data into a list of dictionaries
-    columns = ["id", "date", "time_spent", "labor_cost", "gas_expenses", "additional_charges", "total_cost"]
+    # Include the name column
+    columns = ["name", "date", "time_spent", "labor_cost", "gas_expenses", "additional_charges", "total_cost"]
     jobs_dict = [dict(zip(columns, job)) for job in jobs]
     return jobs_dict
