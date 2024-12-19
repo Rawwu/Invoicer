@@ -43,7 +43,7 @@ def save_job_data(input_data: JobInput):
         "name": input_data.name,
         "date": input_data.date or "N/A",
         "time_spent": input_data.time_spent,
-        "labor_cost_per_hour": input_data.labor_cost_per_hour,  # Align with frontend naming
+        "labor_cost": input_data.labor_cost,  # Align with frontend naming
         "gas_expenses": input_data.gas_expenses,
         "additional_charges": input_data.additional_charges,
         "total_cost": total_cost

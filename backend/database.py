@@ -36,13 +36,13 @@ def save_job(data):
     cursor = conn.cursor()
 
     cursor.execute('''
-        INSERT INTO jobs (name, date, time_spent, labor_cost_per_hour, gas_expenses, additional_charges, total_cost)
+        INSERT INTO jobs (name, date, time_spent, labor_cost, gas_expenses, additional_charges, total_cost)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
         data['name'],
         data['date'],
         data['time_spent'],
-        data['labor_cost_per_hour'],  # Update column name here
+        data['labor_cost'],  # Update column name here
         data['gas_expenses'],
         data['additional_charges'],
         data['total_cost']

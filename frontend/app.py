@@ -17,26 +17,32 @@ option = st.sidebar.radio("Choose a page:", ["Pricing Calculator", "Saved Jobs"]
 if "job_data" not in st.session_state:
     st.session_state.job_data = None
 
+# Initialize session state for chart_option if it doesn't exist
+if "chart_option" not in st.session_state:
+    st.session_state.chart_option = "Bar Graph"  # Default chart option
+
 # Job Cost Estimator Page
 if option == "Pricing Calculator":
     st.header("Calculate Job Cost")
 
     # Form for job details
     with st.form("job_form"):
-        time_spent = st.number_input("Time spent (hours):", min_value=0.0, step=0.1)
-        labor_cost = st.number_input("Labor cost per hour ($):", min_value=0.0, step=0.1)
-        gas_expenses = st.number_input("Gas expenses ($):", min_value=0.0, step=0.1)
-        equipment_wear = st.number_input("Equipment wear/tear cost ($):", min_value=0.0, step=0.1)
-        additional_charges = st.number_input("Additional charges ($):", min_value=0.0, step=0.1)
+        workers = st.number_input("Number of workers:", min_value=1, step=1)
+        time_spent = st.number_input("Time spent (hours):", min_value=0.0, step=1.0)
+        labor_cost = st.number_input("Labor cost per hour ($):", min_value=0.0, step=1.0)
+        gas_expenses = st.number_input("Gas expenses ($):", min_value=0.0, step=1.0)
+        equipment_wear = st.number_input("Equipment wear/tear cost ($):", min_value=0.0, step=1.0)
+        additional_charges = st.number_input("Additional charges ($):", min_value=0.0, step=1.0)
 
         submit_button = st.form_submit_button("Calculate")
 
     if submit_button:
         # Validate inputs
-        if time_spent > 0 and labor_cost > 0:
+        if time_spent > 0 and labor_cost > 0 and workers > 0:
             st.session_state.job_data = {
+                "workers": workers,
                 "time_spent": time_spent,
-                "labor_cost_per_hour": labor_cost,
+                "labor_cost": labor_cost,
                 "gas_expenses": gas_expenses,
                 "equipment_wear": equipment_wear,
                 "additional_charges": additional_charges,
@@ -50,20 +56,8 @@ if option == "Pricing Calculator":
                     st.session_state.job_data["breakdown"] = result["breakdown"]
                     st.session_state.job_data["total_cost"] = result["total_cost"]
 
-                    # Display results
-                    st.subheader("Cost Breakdown")
-                    st.write(f"**Total Cost:** ${result['total_cost']:.2f}")
-                    st.write("**Breakdown:**")
-                    for key, value in result["breakdown"].items():
-                        st.write(f"{key}: ${value:.2f}")
-
-                    # Visualization
-                    st.subheader("Visualization")
-                    df = pd.DataFrame(list(result["breakdown"].items()), columns=["Category", "Cost"])
-                    fig, ax = plt.subplots()
-                    df.plot(kind="bar", x="Category", y="Cost", ax=ax, legend=False)
-                    plt.xticks(rotation=45)
-                    st.pyplot(fig)
+                    # Store the result in session state to use for dynamic chart rendering
+                    st.session_state.chart_data = pd.DataFrame(list(result["breakdown"].items()), columns=["Category", "Cost"])
 
                 else:
                     st.error(f"Error: {response.json().get('detail', 'Unknown error')}")
@@ -71,6 +65,42 @@ if option == "Pricing Calculator":
                 st.error(f"Failed to connect to the API: {e}")
         else:
             st.error("Please fill in all required fields.")
+
+    # Display the cost breakdown
+    if st.session_state.job_data and "breakdown" in st.session_state.job_data:
+        st.subheader("Cost Breakdown")
+        st.markdown(f"#### **Total Cost:** ${st.session_state.job_data['total_cost']:.2f}")
+        st.write("**Breakdown:**")
+        for key, value in st.session_state.job_data["breakdown"].items():
+            st.write(f"{key}: ${value:.2f}")
+
+    # Chart toggle
+    chart_option = st.radio(
+        "Chart type:", 
+        ["Bar Graph", "Pie Chart"], 
+        index=["Bar Graph", "Pie Chart"].index(st.session_state.chart_option),
+        key="chart_option"
+    )
+
+    # Update session state with selected chart option
+    if chart_option != st.session_state.chart_option:
+        st.session_state.chart_option = chart_option
+
+    # Visualization based on chart option
+    if "chart_data" in st.session_state:
+        st.subheader("Visualization")
+        df = st.session_state.chart_data
+
+        if st.session_state.chart_option == "Bar Graph":
+            fig, ax = plt.subplots()
+            df.plot(kind="bar", x="Category", y="Cost", ax=ax, legend=False)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
+        elif st.session_state.chart_option == "Pie Chart":
+            fig, ax = plt.subplots()
+            ax.pie(df["Cost"], labels=df["Category"], autopct="%1.1f%%", startangle=90)
+            ax.axis("equal")  # Equal aspect ratio ensures that pie is drawn as a circle.
+            st.pyplot(fig)
 
     # Generate Invoice
     if st.session_state.job_data:
@@ -121,7 +151,6 @@ elif option == "Saved Jobs":
         if response.status_code == 200:
             jobs = response.json()
             if jobs:
-
                 # Convert jobs to DataFrame
                 try:
                     df = pd.DataFrame(jobs)
@@ -143,7 +172,7 @@ elif option == "Saved Jobs":
                         # Format and rename columns
                         df = df[required_columns]
                         df.rename(
-                            columns={
+                            columns={ 
                                 "name": "Name",
                                 "date": "Date",
                                 "time_spent": "Time Spent (hours)",
@@ -165,8 +194,9 @@ elif option == "Saved Jobs":
                         ]
                         df[numeric_cols] = df[numeric_cols].astype(float).round(2)
 
-                        # Display table without the index
-                        st.write(df.to_html(index=False, escape=False), unsafe_allow_html=True)
+                        # Display the DataFrame directly with Streamlit's native table display
+                        st.write(df)
+
                 except Exception as df_error:
                     st.error(f"Error processing jobs data: {df_error}")
             else:
